@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    container_name: elasticsearch
+    restart: always
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      # ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ES_JAVA_OPTS: '-Xms2g -Xmx2g'
+      ELASTIC_PASSWORD: 'changeme'
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    networks:
+      elastic:
+        ipv4_address: 172.16.239.102
+        aliases:
+          - elasticsearch
+
+  # logstash:
+  #   container_name: logstash
+  #   build:
+  #     context: logstash/
+  #     args:
+  #       ELK_VERSION: $ELK_VERSION
+  #   volumes:
+  #     - type: bind
+  #       source: ./logstash/config/logstash.yml
+  #       target: /usr/share/logstash/config/logstash.yml
+  #       read_only: true
+  #     - type: bind
+  #       source: ./logstash/pipeline
+  #       target: /usr/share/logstash/pipeline
+  #       read_only: true
+  #   # ports:
+  #   #   - "5000:5000/tcp"
+  #   #   - "5000:5000/udp"
+  #   #   - "9600:9600"
+  #   environment:
+  #     LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+  #   networks:
+  #     elastic:
+  #       ipv4_address: 172.16.239.103
+  #       aliases:
+  #         - logstash
+  #   depends_on:
+  #     - elasticsearch
+
+  kibana:
+    container_name: kibana
+    restart: unless-stopped
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    ports:
+      - "5601:5601"
+    networks:
+      elastic:
+        ipv4_address: 172.16.239.104
+        aliases:
+          - kibana
+    depends_on:
+      - elasticsearch
+
+networks:
+  elastic:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.239.0/24
+
+volumes:
+  elasticsearch:
