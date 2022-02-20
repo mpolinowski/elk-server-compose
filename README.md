@@ -13,7 +13,7 @@
 1. Clone the this repository:
 
 ```bash
-git clone https://github.com/mpolinowski/elk-server-compose,git
+git clone https://github.com/mpolinowski/elk-server-compose.git
 ```
 
 2. Build and Run:
